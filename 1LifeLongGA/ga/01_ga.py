@@ -9,8 +9,8 @@ import torch.nn as nn
 from tensorboardX import SummaryWriter
 
 NOISE_STD = 0.01
-POPULATION_SIZE = 50
-PARENTS_COUNT = 10
+POPULATION_SIZE = 1
+PARENTS_COUNT = 1
 
 
 class Net(nn.Module):
@@ -27,10 +27,12 @@ class Net(nn.Module):
         return self.net(x)
 
 
-def evaluate(env, net):
+def evaluate(env, net,obs_size):
     obs = env.reset()
+    obs = obs.reshape(-1)
     reward = 0.0
     while True:
+        obs = obs.reshape(-1)
         obs_v = torch.FloatTensor([obs])
         act_prob = net(obs_v)
         acts = act_prob.max(dim=1)[1]
@@ -38,6 +40,8 @@ def evaluate(env, net):
         reward += r
         if done:
             break
+    #env.close()
+    #env.env.close()
     return reward
 
 
@@ -56,17 +60,17 @@ if __name__ == "__main__":
     writer = SummaryWriter(comment="-cartpole-ga")
     #env = gym.make("CartPole-v1")
     env = gym.make("PongNoFrameskip-v4")
-    env = gym.wrappers.Monitor(env, "recording", force=True)
+    #env = gym.wrappers.Monitor(env, "recording", force=True)
     obs_shape = env.observation_space.shape
     obs_size = ln = reduce(lambda x, y: x * y, obs_shape)
 
     gen_idx = 0
     nets = [
-        Net(env.observation_space.shape[0], env.action_space.n)
+        Net(obs_size, env.action_space.n)
         for _ in range(POPULATION_SIZE)
     ]#N agents
     population = [
-        (net, evaluate(env, net))
+        (net, evaluate(env, net,obs_size))
         for net in nets
     ]#n pairs of agent and fitness: initialization of the population
     while True:
@@ -96,4 +100,4 @@ if __name__ == "__main__":
             population.append((net, fitness))
         gen_idx += 1
 
-    #pass
+    pass
